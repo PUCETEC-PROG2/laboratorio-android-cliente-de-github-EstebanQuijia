@@ -1,7 +1,5 @@
 package ec.edu.uisek.githubclient.models
 
-import org.intellij.lang.annotations.Language
-
 data class Repo(
     val id: Long,
     val name: String,

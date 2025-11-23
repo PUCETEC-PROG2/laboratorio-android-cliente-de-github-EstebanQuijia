@@ -1,6 +1,5 @@
 package ec.edu.uisek.githubclient.services
 
-
 import android.util.Log
 import ec.edu.uisek.githubclient.BuildConfig
 import okhttp3.Interceptor

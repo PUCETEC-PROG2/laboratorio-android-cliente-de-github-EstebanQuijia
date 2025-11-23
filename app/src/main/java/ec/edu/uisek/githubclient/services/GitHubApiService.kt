@@ -5,6 +5,8 @@ import retrofit2.Call
 import retrofit2.http.GET
 
 interface GitHubApiService {
-    @GET(value = "/user/repos")
+
+    @GET("/user/repos")
     fun getRepos(): Call<List<Repo>>
+
 }

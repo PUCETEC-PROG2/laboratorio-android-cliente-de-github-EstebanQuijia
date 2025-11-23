@@ -1,6 +1,5 @@
 package ec.edu.uisek.githubclient
 
-
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -16,10 +15,10 @@ class RepoViewHolder(private val binding: FragmentRepoItemBinding) : RecyclerVie
     //    Por ahora, usaremos datos de ejemplo.
     fun bind(repo: Repo) {
         binding.repoName.text = repo.name
-        binding.repoDescription.text = repo.description ?: "El repositorio no tiene descripcion"
-        binding.repoLang.text = repo.language ?: "Lenguaje no especificado"
+        binding.repoDescription.text = repo.description ?: "El repositorio no tiene descripción"
+        binding.repoLanguage.text = repo.language ?: "Lenguaje no especificado"
         Glide.with(binding.root.context)
-            .load(repo.owner.avatarURL)
+            .load(repo.owner.avatarUrl)
             .placeholder(R.mipmap.ic_launcher)
             .error(R.mipmap.ic_launcher)
             .circleCrop()
@@ -49,7 +48,7 @@ class ReposAdapter : RecyclerView.Adapter<RepoViewHolder>() {
         holder.bind(repositories[position])
     }
 
-    fun updateRepositories(newRepos: List<Repo>){
+    fun updateRepositories(newRepos: List<Repo>) {
         repositories = newRepos
         notifyDataSetChanged()
     }
