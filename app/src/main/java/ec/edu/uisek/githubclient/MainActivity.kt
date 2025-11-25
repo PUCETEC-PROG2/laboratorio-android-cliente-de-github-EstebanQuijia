@@ -1,5 +1,6 @@
 package ec.edu.uisek.githubclient
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -8,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import ec.edu.uisek.githubclient.databinding.ActivityMainBinding
 import ec.edu.uisek.githubclient.models.Repo
 import ec.edu.uisek.githubclient.services.RetrofitClient
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -21,43 +23,33 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        binding.fabNewTask.setOnClickListener {
+            displayNewRepoForm()
+        }
+
+    }
+
+    override fun onResume(){
+        super.onResume()
         setupRecyclerView()
-        setupFab()
-
-        // Solo cargar repositorios si no hay un estado guardado (para evitar recargar al rotar)
-        if (savedInstanceState == null) {
-            fetchRepositories()
-        }
-
-        // Escuchar cambios en la pila de fragments para mostrar/ocultar el FAB
-        supportFragmentManager.addOnBackStackChangedListener {
-            if (supportFragmentManager.backStackEntryCount > 0) {
-                // CAMBIO 1: fabAddProject -> fabNewTask
-                binding.fabNewTask.hide()
-            } else {
-                // CAMBIO 1: fabAddProject -> fabNewTask
-                binding.fabNewTask.show()
-            }
-        }
+        fetchRepositories()
     }
 
     private fun setupRecyclerView() {
-        reposAdapter = ReposAdapter()
+        // 1. Definimos la acción de Editar (Lanza el formulario)
+        val editAction: (Repo) -> Unit = { repo -> editRepo(repo) }
+
+        // 2. Definimos la acción de Eliminar (Llama directamente a la API DELETE)
+        // Usamos performDeleteRepo() que es la función que llama a Retrofit.
+        val deleteAction: (Repo) -> Unit = { repo -> performDeleteRepo(repo.name) }
+
+        // 3. Inicializamos el adaptador UNA SOLA VEZ, pasándole las acciones.
+        reposAdapter = ReposAdapter(editAction, deleteAction)
+
+        // 4. Configuramos el RecyclerView.
         binding.repoRecyclerView.apply {
             adapter = reposAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)
-        }
-    }
-
-    private fun setupFab() {
-        // CAMBIO 1: fabAddProject -> fabNewTask
-        binding.fabNewTask.setOnClickListener {
-            // CAMBIO 2: NewProjectFragment (ya estaba correcto en tu código)
-            val fragment = NewProjectFragment()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
         }
     }
 
@@ -88,13 +80,51 @@ class MainActivity : AppCompatActivity() {
 
             override fun onFailure(call: Call<List<Repo>>, t: Throwable) {
                 //no hay conexion a red
+                val errorMsg = "Error de conexión: ${t.message}"
                 Log.e("MainActivity", "Error de conexión", t)
-                showMessage("Error de conexión: ${t.message}")
+                showMessage(errorMsg)
             }
         })
     }
 
     private fun showMessage(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    }
+
+    private fun displayNewRepoForm() {
+        Intent(this, RepoForm::class.java).apply {
+            startActivity(this)
+        }
+    }
+    private fun editRepo(repo: Repo) {
+        Intent(this, RepoForm::class.java).apply {
+            // Pasamos la bandera y los datos que el RepoForm usará
+            putExtra(EXTRA_IS_EDIT_MODE, true)
+            putExtra(EXTRA_REPO_NAME, repo.name)
+            putExtra(EXTRA_REPO_DESCRIPTION, repo.description)
+            startActivity(this)
+        }
+    }
+
+    private fun performDeleteRepo(repoName: String) {
+        val apiService = RetrofitClient.gitHubApiService
+        val owner = "EstebanQuijia" // ¡Reemplaza con tu usuario!
+
+        val call = apiService.deleteRepo(owner, repoName)
+
+        call.enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                if (response.isSuccessful) {
+                    showMessage("Repositorio '$repoName' eliminado exitosamente.")
+                    fetchRepositories() // Refresca la lista inmediatamente
+                } else {
+                    showMessage("Error al eliminar: ${response.code()}")
+                }
+            }
+
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                showMessage("Error de red al intentar eliminar.")
+            }
+        })
     }
 }
